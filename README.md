@@ -1,6 +1,6 @@
 # chatbot
 
-**Orchestration repository** for a LangChain-powered RAG chatbot service.
+**Orchestration repository** for RAG chatbot service.
 
 The backend (FastAPI) and frontend (Next.js) live in separate private repositories. This repo bundles them as git submodules so the whole stack can be cloned and run from a single entry point.
 
@@ -110,3 +110,23 @@ git commit -m "Bump backend pointer"
 ```
 
 The parent repo pins each submodule to a **specific commit hash**, so after pushing changes inside a submodule you must also commit the pointer bump in the parent for other environments to reproduce the same version.
+
+## GitHub Actions
+
+| Workflow | Trigger | Role |
+|---|---|---|
+| [`auto-submodule-bump.yml`](.github/workflows/auto-submodule-bump.yml) | `*/10 * * * *` cron + manual `workflow_dispatch` | Polls `backend` / `frontend` `origin/main`, opens a bundled pointer-bump PR (both submodules changed) or a single-submodule PR (one changed) following this repo's commit convention, then enables squash auto-merge. |
+
+### Required `SUBMODULE_PAT` secret
+
+The workflow uses a Personal Access Token registered as the `SUBMODULE_PAT` repository secret (Settings → Secrets and variables → Actions). The default `GITHUB_TOKEN` cannot clone the private submodule repositories and cannot trigger downstream workflows on the auto-generated PR, so a PAT is required.
+
+**Fine-grained PAT (recommended)** — limit access to the three repositories below and grant only:
+
+| Repository | Permission |
+|---|---|
+| `heemanglee/langchain-chatbot` | Contents: Read-only |
+| `heemanglee/langchain-chatbot-fe` | Contents: Read-only |
+| `heemanglee/chatbot` | Contents: Read & write, Pull requests: Read & write |
+
+`Metadata: Read-only` is auto-enabled by GitHub when any other permission is granted — leave it on.
