@@ -2,7 +2,7 @@ name: Auto bump submodules
 
 on:
   schedule:
-    - cron: "0 18 * * *"   # 매일 KST 03:00 (UTC 18:00)
+    - cron: "*/10 * * * *"   # 10분마다 (GitHub Actions cron은 부하 시 지연될 수 있음)
   workflow_dispatch:
 
 permissions:
