@@ -86,19 +86,19 @@ Decision rule (Form A vs B):
 
 ### Pulling submodules to their latest origin/main
 
-로컬에서 양쪽 submodule을 한 번에 origin/main으로 fast-forward하려면 `scripts/sync.sh`를 사용한다. parent + 양쪽 submodule을 차례로 `git pull --ff-only`로 당기되, submodule이 `main` 브랜치가 아니거나 detached HEAD면 자동으로 건너뛴다 — feature branch 작업 중일 때 의도치 않게 갱신될 위험이 없다.
+To fast-forward both submodules to `origin/main` in one step, use `scripts/sync.sh`. It pulls the parent and each submodule with `git pull --ff-only` in sequence, but automatically skips any submodule that is not on `main` or is in detached-HEAD state — no accidental updates while on a feature branch.
 
 ```bash
 ./scripts/sync.sh
 ```
 
-raw git 명령으로 강제 갱신하려면 (feature branch 위에서도 무조건 `origin/main`으로 옮겨감 — 주의):
+To force-update regardless of current branch state (moves the submodule to `origin/main` unconditionally — use with caution):
 
 ```bash
 git submodule update --remote --merge
 ```
 
-`scripts/sync.sh`와 달리 이 명령은 submodule이 어떤 상태든 `origin/main`으로 옮기며 detached HEAD가 만들어진다. 그 직후 곧장 commit/edit하지 말고, 작업 전에는 반드시 submodule 안에서 `git switch <branch>`(또는 `-c <new>`)로 이동할 것.
+Unlike `scripts/sync.sh`, this command moves the submodule to `origin/main` no matter what state it is in and leaves it in detached-HEAD mode. Do not commit or edit immediately after — always run `git switch <branch>` (or `-c <new>`) inside the submodule before doing any work.
 
 ### Common pitfalls
 
@@ -124,33 +124,39 @@ Frontend E2E (Playwright) requires both FE (`:3000`) and BE (`:8001`) to be up; 
 
 ## Superpowers cross-stack workflow
 
-When the user runs the Superpowers flow on this repo (브레인스토밍 → 스펙 → 플랜 → 구현 → PR), 산출물 작성 위치와 실행 방식은 다음 룰을 따른다.
+When the user runs the Superpowers flow on this repo (brainstorm → spec → plan → implementation → PR), follow these rules for artifact locations and execution order.
 
-### 산출물 위치
+### Artifact locations
 
-| 산출물 | 작성 위치 |
+| Artifact | Location |
 |---|---|
-| Cross-stack spec (양쪽 영향 묶음) | `docs/superpowers/specs/` (parent repo) |
+| Cross-stack spec (spans both submodules) | `docs/superpowers/specs/` (parent repo) |
 | Backend spec | `backend/docs/superpowers/specs/` |
 | Backend implementation plan | `backend/docs/superpowers/plans/` |
 | Frontend spec | `frontend/docs/superpowers/specs/` |
 | Frontend implementation plan | `frontend/docs/superpowers/plans/` |
 
-- **Spec은 세 곳 모두 작성한다.** parent repo, backend repo, frontend repo 각각에 spec 문서를 둔다. parent에는 cross-stack 관점의 통합 spec, 각 sub-repo에는 그 repo 관점의 spec이 필요하다.
-- **Plan은 backend / frontend 두 곳에만 작성한다.** parent repo는 plan을 가지지 않는다 (orchestration repo에는 plan할 application code가 없으며, parent의 작업은 포인터-범프 commit으로 한정된다).
+- **Specs go in all three places.** The parent holds the cross-stack integration spec; each sub-repo holds its own perspective.
+- **Plans go in backend and frontend only.** The parent has no application code to plan against — its only work is pointer-bump commits.
 
-### 각 sub-repo의 자체 workflow를 우선한다
+### Each sub-repo's own workflow takes precedence
 
-backend / frontend submodule은 각자의 superpowers workflow rules를 갖는다 (예: `backend/.claude/rules/superpowers/workflow.md`, `frontend/.claude/rules/superpowers/workflow.md`). 구현 단계에서는 **각 sub-repo 자신의 룰이 우선**한다. parent의 workflow skill은 cross-stack 진입점·문서 위치·포인터 범프만 담당하고, BE/FE 안의 TDD·리뷰 cadence·commit policy 등은 각 sub-repo 룰을 따른다.
+Each submodule has its own Superpowers workflow rules (e.g. `backend/.claude/rules/superpowers/workflow.md`, `frontend/.claude/rules/superpowers/workflow.md`). During implementation, **the sub-repo's own rules win**. The parent's workflow skill covers only the cross-stack entry point, artifact locations, and pointer bumps — TDD cadence, review policy, and commit policy inside BE/FE follow each sub-repo's rules.
 
-### Frontend와 backend는 병렬 진행
+### Frontend and backend run in parallel
 
-frontend와 backend는 작업 영역이 겹치지 않으므로 **각자의 task를 평행으로 진행한다**. 한 쪽을 끝낸 뒤 다른 쪽을 시작하지 말고, 두 implementer subagent를 동시에 dispatch한다. 동기화가 필요한 시점은 다음 두 곳뿐이다:
+Frontend and backend work in non-overlapping areas, so **dispatch both as parallel implementer subagents**. Never finish one side before starting the other. Synchronization is required only at two points:
 
-1. **FE e2e 검증** — BE 변경이 적용된 server 컨테이너가 떠 있어야 한다 (`docker compose up -d --build server` 후).
-2. **parent repo 포인터-범프 commit** — 양쪽 submodule PR이 머지된 후 양쪽 SHA를 묶어 한 commit으로 작성한다 (Form A).
+1. **FE e2e verification** — the BE server container with the new changes must be running (`docker compose up -d --build server` first).
+2. **Parent repo pointer-bump commit** — after both submodule PRs merge, bundle both SHAs into one commit (Form A).
 
-스펙·플랜·issue·branch·구현·리뷰는 모두 BE/FE 병렬로 진행한다.
+Specs, plans, issues, branches, implementation, and reviews all proceed in BE/FE parallel.
+
+### Worktree rules
+
+During implementation, **always create a worktree branched from `main`** for both backend and frontend (apply the `superpowers:using-git-worktrees` skill). See each sub-repo's CLAUDE.md for the detailed procedure.
+
+Copy worktree changes to the local working directory **only when the user explicitly requests it** (e.g. "로컬로 옮겨줘", "move to local"). Issue / PR creation follows only on a separate explicit request.
 
 ## Editing the parent repo
 
@@ -160,6 +166,6 @@ There is very little to edit at the parent level. Realistic parent-only changes:
 - Updating this `CLAUDE.md`
 - Adjusting `.gitmodules` (rare — submodule URL change)
 - Committing pointer bumps after submodule work
-- 위의 "Superpowers cross-stack workflow" 룰에 따라 cross-stack spec을 `docs/superpowers/specs/`에 작성하는 작업
+- Writing cross-stack specs under `docs/superpowers/specs/` per the Superpowers cross-stack workflow rules above
 
 Anything else almost certainly belongs **inside a submodule**, where its own CLAUDE.md and `.claude/rules/` apply.
