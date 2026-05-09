@@ -114,6 +114,36 @@ The submodule CLAUDE.md files document each side's commands. Cross-stack notes t
 
 Frontend E2E (Playwright) requires both FE (`:3000`) and BE (`:8001`) to be up; only the FE dev server is auto-started by `webServer`.
 
+## Superpowers cross-stack workflow
+
+When the user runs the Superpowers flow on this repo (브레인스토밍 → 스펙 → 플랜 → 구현 → PR), 산출물 작성 위치와 실행 방식은 다음 룰을 따른다.
+
+### 산출물 위치
+
+| 산출물 | 작성 위치 |
+|---|---|
+| Cross-stack spec (양쪽 영향 묶음) | `docs/superpowers/specs/` (parent repo) |
+| Backend spec | `backend/docs/superpowers/specs/` |
+| Backend implementation plan | `backend/docs/superpowers/plans/` |
+| Frontend spec | `frontend/docs/superpowers/specs/` |
+| Frontend implementation plan | `frontend/docs/superpowers/plans/` |
+
+- **Spec은 세 곳 모두 작성한다.** parent repo, backend repo, frontend repo 각각에 spec 문서를 둔다. parent에는 cross-stack 관점의 통합 spec, 각 sub-repo에는 그 repo 관점의 spec이 필요하다.
+- **Plan은 backend / frontend 두 곳에만 작성한다.** parent repo는 plan을 가지지 않는다 (orchestration repo에는 plan할 application code가 없으며, parent의 작업은 포인터-범프 commit으로 한정된다).
+
+### 각 sub-repo의 자체 workflow를 우선한다
+
+backend / frontend submodule은 각자의 superpowers workflow rules를 갖는다 (예: `backend/.claude/rules/superpowers/workflow.md`, `frontend/.claude/rules/superpowers/workflow.md`). 구현 단계에서는 **각 sub-repo 자신의 룰이 우선**한다. parent의 workflow skill은 cross-stack 진입점·문서 위치·포인터 범프만 담당하고, BE/FE 안의 TDD·리뷰 cadence·commit policy 등은 각 sub-repo 룰을 따른다.
+
+### Frontend와 backend는 병렬 진행
+
+frontend와 backend는 작업 영역이 겹치지 않으므로 **각자의 task를 평행으로 진행한다**. 한 쪽을 끝낸 뒤 다른 쪽을 시작하지 말고, 두 implementer subagent를 동시에 dispatch한다. 동기화가 필요한 시점은 다음 두 곳뿐이다:
+
+1. **FE e2e 검증** — BE 변경이 적용된 server 컨테이너가 떠 있어야 한다 (`docker compose up -d --build server` 후).
+2. **parent repo 포인터-범프 commit** — 양쪽 submodule PR이 머지된 후 양쪽 SHA를 묶어 한 commit으로 작성한다 (Form A).
+
+스펙·플랜·issue·branch·구현·리뷰는 모두 BE/FE 병렬로 진행한다.
+
 ## Editing the parent repo
 
 There is very little to edit at the parent level. Realistic parent-only changes:
@@ -122,5 +152,6 @@ There is very little to edit at the parent level. Realistic parent-only changes:
 - Updating this `CLAUDE.md`
 - Adjusting `.gitmodules` (rare — submodule URL change)
 - Committing pointer bumps after submodule work
+- 위의 "Superpowers cross-stack workflow" 룰에 따라 cross-stack spec을 `docs/superpowers/specs/`에 작성하는 작업
 
 Anything else almost certainly belongs **inside a submodule**, where its own CLAUDE.md and `.claude/rules/` apply.
