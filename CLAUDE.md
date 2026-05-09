@@ -86,11 +86,19 @@ Decision rule (Form A vs B):
 
 ### Pulling submodules to their latest origin/main
 
+로컬에서 양쪽 submodule을 한 번에 origin/main으로 fast-forward하려면 `scripts/sync.sh`를 사용한다. parent + 양쪽 submodule을 차례로 `git pull --ff-only`로 당기되, submodule이 `main` 브랜치가 아니거나 detached HEAD면 자동으로 건너뛴다 — feature branch 작업 중일 때 의도치 않게 갱신될 위험이 없다.
+
+```bash
+./scripts/sync.sh
+```
+
+raw git 명령으로 강제 갱신하려면 (feature branch 위에서도 무조건 `origin/main`으로 옮겨감 — 주의):
+
 ```bash
 git submodule update --remote --merge
 ```
 
-This is the only command that advances the pinned SHAs without going inside the submodule first. Use it when you want to take whatever is on `origin/main` of each submodule.
+`scripts/sync.sh`와 달리 이 명령은 submodule이 어떤 상태든 `origin/main`으로 옮기며 detached HEAD가 만들어진다. 그 직후 곧장 commit/edit하지 말고, 작업 전에는 반드시 submodule 안에서 `git switch <branch>`(또는 `-c <new>`)로 이동할 것.
 
 ### Common pitfalls
 
