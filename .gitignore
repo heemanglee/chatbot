@@ -4,5 +4,10 @@
 
 .DS_Store
 
+# Playwright MCP browser dumps console logs and page snapshots into the
+# session cwd. When Claude is opened at the parent repo, those land here
+# (frontend's own .gitignore handles its own dumps).
+.playwright-mcp/
+
 docs/superpowers
 docs/solutions
