@@ -131,6 +131,7 @@ When the user runs the Superpowers flow on this repo (brainstorm → spec → pl
 
 | Artifact | Location |
 |---|---|
+| Workflow / orchestration learnings (parent-level) | `docs/solutions/` (parent repo) — documented solutions to past workflow / architecture problems, organized by category (`workflow-issues/`, `architecture-patterns/`, etc.) with YAML frontmatter (`module`, `tags`, `problem_type`). Sub-repo specific learnings live in `backend/docs/solutions/` and `frontend/docs/solutions/`. Relevant when implementing or debugging in documented areas. |
 | Cross-stack spec (spans both submodules) | `docs/superpowers/specs/` (parent repo) |
 | Backend spec | `backend/docs/superpowers/specs/` |
 | Backend implementation plan | `backend/docs/superpowers/plans/` |
