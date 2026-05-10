@@ -105,6 +105,7 @@ Unlike `scripts/sync.sh`, this command moves the submodule to `origin/main` no m
 - **Forgetting the pointer bump** — a teammate clones, gets the old commit, can't reproduce your changes. Always check `git status` at the parent after submodule work.
 - **Detached HEAD inside a submodule** — `git submodule update` checks out the pinned SHA in detached-HEAD mode. Before editing, always `git switch <branch>` (or `-c <new>`) inside the submodule. Otherwise commits land on no branch and are easy to lose.
 - **Private-repo access** — both submodules point to private repos. Users without read access can see `.gitmodules` but `git submodule update --init` will fail at the network step.
+- **Sub-repo Claude hook은 parent session에서 작동하지 않는다** — Claude Code는 session cwd의 `.claude/settings.json`만 로드한다. parent에서 작업하면 `backend/.claude` / `frontend/.claude`의 PreToolUse·SessionStart·PostToolUse hook이 모두 우회된다. 이 때문에 BE/FE의 commit-time 검증은 Claude hook이 아닌 git native `.githooks/pre-commit` (각 sub-repo)으로 구성되어 있다. 새 commit-time 가드를 추가할 때는 sub-repo `.githooks/` 경로를 먼저 검토.
 
 ## Running the full stack
 
