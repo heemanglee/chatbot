@@ -94,10 +94,27 @@ Open http://localhost:3000.
 
 ## Working with submodules
 
-```bash
-# Update each submodule to its origin/main HEAD
-git submodule update --remote --merge
+### Sync to `origin/main` (recommended)
 
+Use the helper script to fast-forward the parent and both submodules in one shot:
+
+```bash
+./scripts/sync.sh
+```
+
+It runs `git pull --ff-only` against `origin` for the parent and against `origin/main` for each submodule, but **automatically skips any submodule that is not on `main` or is in detached-HEAD state** — so in-progress feature work is never disturbed.
+
+If you instead want to force-update both submodules to `origin/main` regardless of state, use:
+
+```bash
+git submodule update --remote --merge
+```
+
+This leaves the submodule in detached-HEAD mode, so run `git switch <branch>` inside the submodule before editing or committing.
+
+### Pointer-bump pattern
+
+```bash
 # After making changes inside a submodule
 cd backend
 git switch -c feat/some-change
@@ -106,10 +123,10 @@ git switch -c feat/some-change
 # Back in the parent repo, bump the pointer
 cd ..
 git add backend
-git commit -m "Bump backend pointer"
+git commit -m "chore(backend): bump submodule to pull <summary>"
 ```
 
-The parent repo pins each submodule to a **specific commit hash**, so after pushing changes inside a submodule you must also commit the pointer bump in the parent for other environments to reproduce the same version.
+The parent repo pins each submodule to a **specific commit hash**, so after pushing changes inside a submodule you must also commit the pointer bump in the parent for other environments to reproduce the same version. See [`CLAUDE.md`](CLAUDE.md) for the bundled (Form A) vs. separate (Form B) commit message conventions.
 
 ## GitHub Actions
 
