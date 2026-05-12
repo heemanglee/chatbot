@@ -105,7 +105,7 @@ Unlike `scripts/sync.sh`, this command moves the submodule to `origin/main` no m
 - **Forgetting the pointer bump** — a teammate clones, gets the old commit, can't reproduce your changes. Always check `git status` at the parent after submodule work.
 - **Detached HEAD inside a submodule** — `git submodule update` checks out the pinned SHA in detached-HEAD mode. Before editing, always `git switch <branch>` (or `-c <new>`) inside the submodule. Otherwise commits land on no branch and are easy to lose.
 - **Private-repo access** — both submodules point to private repos. Users without read access can see `.gitmodules` but `git submodule update --init` will fail at the network step.
-- **Sub-repo Claude hook은 parent session에서 작동하지 않는다** — Claude Code는 session cwd의 `.claude/settings.json`만 로드한다. parent에서 작업하면 `backend/.claude` / `frontend/.claude`의 PreToolUse·SessionStart·PostToolUse hook이 모두 우회된다. 이 때문에 BE/FE의 commit-time 검증은 Claude hook이 아닌 git native `.githooks/pre-commit` (각 sub-repo)으로 구성되어 있다. 새 commit-time 가드를 추가할 때는 sub-repo `.githooks/` 경로를 먼저 검토.
+- **Sub-repo Claude hooks do not fire from the parent session** — Claude Code only loads `.claude/settings.json` from the session cwd. When you work at the parent, every `PreToolUse` / `SessionStart` / `PostToolUse` hook under `backend/.claude` / `frontend/.claude` is silently bypassed. For that reason, BE / FE commit-time verification is wired through git-native `.githooks/pre-commit` in each sub-repo, not through Claude hooks. When adding a new commit-time guard, check the sub-repo's `.githooks/` first.
 
 ## Running the full stack
 
@@ -143,7 +143,7 @@ When the user runs the Superpowers flow on this repo (brainstorm → spec → pl
 
 ### Each sub-repo's own workflow takes precedence
 
-Each submodule has its own Superpowers workflow rules (e.g. `backend/.claude/rules/superpowers/workflow.md`, `frontend/.claude/rules/superpowers/workflow.md`). During implementation, **the sub-repo's own rules win**. The parent's workflow skill covers only the cross-stack entry point, artifact locations, and pointer bumps — TDD cadence, review policy, and commit policy inside BE/FE follow each sub-repo's rules.
+Each submodule manages its own implementation conventions through `.claude/`. Backend keeps an explicit rules file at `backend/.claude/rules/superpowers/workflow.md` (TDD cadence, review policy, commit policy). Frontend does **not** have an equivalent `.claude/rules/` directory — its automation lives in `frontend/.claude/agents/` (`gsd-*` series), `frontend/.claude/get-shit-done/`, `frontend/.claude/hooks/`, and `frontend/.claude/skills/`. See `frontend/CLAUDE.md` for FE-specific workflow conventions. During implementation, **the sub-repo's own rules win**. The parent's workflow skill covers only the cross-stack entry point, artifact locations, and pointer bumps.
 
 ### Frontend and backend run in parallel
 
