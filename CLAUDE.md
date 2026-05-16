@@ -113,7 +113,8 @@ The submodule CLAUDE.md files document each side's commands. Cross-stack notes t
 
 | Service | Host port | Notes |
 |---|---|---|
-| Frontend (`npm run dev`) | 3000 | always port 3000 |
+| Frontend (host `npm run dev`) | 3000 | for active dev / debugging |
+| Frontend (docker stack) | 3000 | `docker compose up -d` inside `frontend/` — always-on |
 | Backend (host uvicorn) | 8000 | `uv run uvicorn app.main:app --reload --port 8000` |
 | Backend (full docker stack) | 8001 | `docker compose up -d --build` inside `backend/` |
 | pgvector | 5433 | started by `docker compose up -d pgvector` |
@@ -122,6 +123,19 @@ The submodule CLAUDE.md files document each side's commands. Cross-stack notes t
 **Frontend `NEXT_PUBLIC_API_BASE_URL` must point at whichever backend you are running** — `:8000` for host uvicorn, `:8001` for full docker stack. The hard-coded fallback in `frontend/src/lib/api-client.ts` is `:8000`, which mismatches the docker stack — if FE requests fail at runtime, suspect a missing `frontend/.env.local` first (per `frontend/CLAUDE.md`).
 
 Frontend E2E (Playwright) requires both FE (`:3000`) and BE (`:8001`) to be up; only the FE dev server is auto-started by `webServer`.
+
+### Always-on docker stack
+
+Both submodules ship a `docker-compose.yml` so the stack can run continuously in the background and survive Docker daemon restarts. Each submodule's CLAUDE.md owns the per-side details; the cross-stack picture is:
+
+| Side | Compose project | Container name(s) | Hot reload | Restart policy |
+|---|---|---|---|---|
+| Frontend (`frontend/`) | `chatbot-frontend` | `langchain-chatbot-frontend` | Yes — bind mount + WATCHPACK polling, ~1s feedback | `unless-stopped` on the FE container |
+| Backend (`backend/`) | `backend` | `backend-{pgvector,redis,server,worker,beat}-1` | No — server runs without `--reload`; rebuild via `docker compose up -d --build server` | `unless-stopped` on `beat` only; the other BE services have no explicit policy and rely on Docker Desktop's "start containers on Docker Desktop start" toggle |
+
+- **Laptop reboot survival requires two things.** (1) Each container's restart policy reattaches it when the Docker daemon comes back. (2) Docker Desktop itself must auto-launch at login — toggle in *Docker Desktop → Settings → General → "Start Docker Desktop when you sign in to your computer"*, or install a user-level LaunchAgent that runs `open -a Docker` at login. Without (2), the daemon never starts and nothing reattaches.
+- **Persistent BE state** lives in named volume `backend_postgres_data`. Renaming the BE compose project (e.g. via `name: chatbot-backend`) creates a fresh empty volume unless the existing one is pinned with `volumes.postgres_data.name: backend_postgres_data`.
+- **`NEXT_PUBLIC_API_BASE_URL` is browser-side.** Even in the all-docker setup it must resolve from the user's browser to the BE's host-published port — `http://localhost:8001`, never a compose service hostname.
 
 ## Superpowers cross-stack workflow
 
