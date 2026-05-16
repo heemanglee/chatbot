@@ -124,6 +124,60 @@ The submodule CLAUDE.md files document each side's commands. Cross-stack notes t
 
 Frontend E2E (Playwright) requires both FE (`:3000`) and BE (`:8001`) to be up; only the FE dev server is auto-started by `webServer`.
 
+### Per-side test containers
+
+When testing worktree changes, prefer each submodule's `test-container` skill instead of reusing the always-on main containers. Each skill starts only the side it owns and scans a non-main port range so multiple worktrees can run in parallel without colliding with `3000`, `8001`, `5433`, or `6380`.
+
+**Backend changes only**
+
+Run the backend `test-container` skill from the backend checkout or backend worktree. It starts only backend-owned services: FastAPI server, isolated PostgreSQL/pgvector, and isolated Redis. It also seeds `test@test.com` / `testtest`.
+
+```bash
+cd backend
+python .agents/skills/test-container/scripts/isolated_backend_env.py start
+```
+
+Use the emitted `backend_url` for API checks or for a frontend container.
+
+**Frontend changes only**
+
+Run the frontend `test-container` skill from the frontend checkout or frontend worktree. It starts only the Next.js frontend container and points `NEXT_PUBLIC_API_BASE_URL` at an existing backend. The default backend is the main docker backend at `http://localhost:8001`.
+
+```bash
+cd frontend
+python .agents/skills/test-container/scripts/isolated_frontend_env.py start \
+  --backend-url http://localhost:8001
+```
+
+Use the emitted `frontend_url` in the browser.
+
+**Both backend and frontend changes**
+
+Start backend first, then pass its emitted `backend_url` into the frontend `test-container` skill.
+
+```bash
+cd backend
+python .agents/skills/test-container/scripts/isolated_backend_env.py start
+
+cd ../frontend
+python .agents/skills/test-container/scripts/isolated_frontend_env.py start \
+  --backend-url http://localhost:<backend-port-from-output>
+```
+
+Status and cleanup commands:
+
+```bash
+cd backend
+python .agents/skills/test-container/scripts/isolated_backend_env.py status
+python .agents/skills/test-container/scripts/isolated_backend_env.py stop
+python .agents/skills/test-container/scripts/isolated_backend_env.py stop --volumes
+
+cd ../frontend
+python .agents/skills/test-container/scripts/isolated_frontend_env.py status
+python .agents/skills/test-container/scripts/isolated_frontend_env.py stop
+python .agents/skills/test-container/scripts/isolated_frontend_env.py stop --volumes
+```
+
 ### Always-on docker stack
 
 Both submodules ship a `docker-compose.yml` so the stack can run continuously in the background and survive Docker daemon restarts. Each submodule's CLAUDE.md owns the per-side details; the cross-stack picture is:
