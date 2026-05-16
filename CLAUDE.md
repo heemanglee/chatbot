@@ -239,5 +239,6 @@ There is very little to edit at the parent level. Realistic parent-only changes:
 - Adjusting `.gitmodules` (rare — submodule URL change)
 - Committing pointer bumps after submodule work
 - Writing cross-stack specs under `docs/superpowers/specs/` per the Superpowers cross-stack workflow rules above
+- Recording workflow / process / convention changes as ADRs under `docs/adr/` (single source of truth for "how we work" decisions — produced by the `adr-on-workflow-change` skill)
 
 Anything else almost certainly belongs **inside a submodule**, where its own CLAUDE.md and `.claude/rules/` apply.
