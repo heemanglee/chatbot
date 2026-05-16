@@ -160,6 +160,8 @@ During implementation, **always create a worktree branched from `main`** for bot
 
 Copy worktree changes to the local working directory **only when the user explicitly requests it** (e.g. "로컬로 옮겨줘", "move to local"). Issue / PR creation follows only on a separate explicit request.
 
+**Remove the worktree immediately after PR creation.** Run `git worktree remove <path>` inside the submodule right after `gh pr create` succeeds. Git only allows a branch to be checked out in one worktree at a time — if the worktree keeps holding `feat/foo`, `git switch feat/foo` from the main checkout fails with `fatal: '<branch>' is already checked out at ...`. Once the PR exists, the worktree's job is done; remove it so follow-up review-feedback commits can happen in the main checkout via `git switch <branch>`. Do NOT recreate the worktree for review-feedback work.
+
 ## Editing the parent repo
 
 There is very little to edit at the parent level. Realistic parent-only changes:
