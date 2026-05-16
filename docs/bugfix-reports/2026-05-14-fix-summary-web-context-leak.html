@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>수정 요약: 웹검색 OFF turn에서 _WEB_HANDLING_CLAUSE system prompt 누출 제거</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root {
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", "Segoe UI", Roboto, sans-serif;
+  }
+  body {
+    background-color: #f8fafc;
+    color: #1f2937;
+  }
+  .container-narrow {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
+  }
+  h1 {
+    font-size: 1.75rem;
+    line-height: 1.4;
+    font-weight: 800;
+    color: #0f172a;
+    border-bottom: 3px solid #2563eb;
+    padding-bottom: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+  h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #1e3a8a;
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+    padding-left: 0.75rem;
+    border-left: 4px solid #2563eb;
+  }
+  h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #0f172a;
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+  p, li {
+    line-height: 1.7;
+  }
+  ul {
+    list-style: disc;
+    padding-left: 1.5rem;
+    margin: 0.5rem 0 1rem;
+  }
+  ul ul {
+    list-style: circle;
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+  }
+  code.inline {
+    background-color: #f1f5f9;
+    color: #be185d;
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.25rem;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.9em;
+    border: 1px solid #e2e8f0;
+  }
+  pre {
+    background-color: #0f172a;
+    color: #e2e8f0;
+    padding: 1rem 1.25rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.85rem;
+    line-height: 1.55;
+    margin: 0.75rem 0 1.25rem;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0 1.5rem;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    border-radius: 0.5rem;
+    overflow: hidden;
+  }
+  th, td {
+    border: 1px solid #e2e8f0;
+    padding: 0.6rem 0.85rem;
+    text-align: left;
+    vertical-align: top;
+    font-size: 0.92rem;
+  }
+  thead th {
+    background-color: #1e3a8a;
+    color: #f8fafc;
+    font-weight: 600;
+  }
+  tbody tr:nth-child(even) {
+    background-color: #f8fafc;
+  }
+  .metadata-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+  .metadata-card dt {
+    font-weight: 600;
+    color: #1e3a8a;
+  }
+  .metadata-card dd {
+    margin: 0 0 0.6rem;
+    color: #334155;
+  }
+  blockquote {
+    border-left: 4px solid #fbbf24;
+    background: #fffbeb;
+    padding: 0.6rem 1rem;
+    margin: 0.5rem 0 0.75rem;
+    color: #78350f;
+    border-radius: 0.25rem;
+    font-style: italic;
+  }
+  a {
+    color: #2563eb;
+    text-decoration: underline;
+  }
+  a:hover {
+    color: #1d4ed8;
+  }
+  .badge {
+    display: inline-block;
+    background-color: #dcfce7;
+    color: #166534;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin-left: 0.4rem;
+  }
+  figure {
+    margin: 1.5rem 0;
+    text-align: center;
+  }
+  figure img {
+    max-width: 100%;
+    border-radius: 0.5rem;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+  }
+  figcaption {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: #64748b;
+  }
+</style>
+</head>
+<body>
+<main class="container-narrow">
+
+  <h1>수정 요약: 웹검색 OFF turn에서 <code class="inline">_WEB_HANDLING_CLAUSE</code> system prompt 누출 제거</h1>
+
+  <!-- 섹션 1: 메타데이터 -->
+  <h2>1. 메타데이터</h2>
+  <div class="metadata-card">
+    <dl class="grid grid-cols-1 sm:grid-cols-[140px_1fr] gap-x-4">
+      <dt>Branch</dt>
+      <dd><code class="inline">fix/web-context-leak</code> (backend)</dd>
+
+      <dt>Worktree</dt>
+      <dd><code class="inline">backend/.worktrees/fix/web-context-leak</code></dd>
+
+      <dt>Base</dt>
+      <dd><code class="inline">origin/main</code> (b75f23a)</dd>
+
+      <dt>수정 일자</dt>
+      <dd>2026-05-14</dd>
+
+      <dt>TDD 채택</dt>
+      <dd>
+        Yes <span class="badge">테스트 우선</span>
+        <div class="mt-1 text-sm text-slate-600">
+          신규 5개 테스트 추가 (web clause inclusion/exclusion 검증), 기존 4개 케이스는 시그니처 호환 유지.
+        </div>
+      </dd>
+    </dl>
+  </div>
+
+  <!-- 섹션 2: 변경 내용 -->
+  <h2>2. 변경 내용</h2>
+
+  <h3>1) <code class="inline">app/domain/chat/service.py</code></h3>
+  <ul>
+    <li>
+      <code class="inline">_WEB_HANDLING_CLAUSE</code> 마지막 문장에 negative instruction 추가:
+      <blockquote>
+        "Never emit <code class="inline">&lt;web_context&gt;</code> or <code class="inline">&lt;result&gt;</code> tags in your reply — they are internal data wrappers, not output formatting."
+      </blockquote>
+    </li>
+    <li>
+      <code class="inline">build_system_prompt</code> 시그니처 변경:
+      <ul>
+        <li><code class="inline">(user, *, today=None)</code> → <code class="inline">(user, *, today=None, use_web_search: bool = False)</code></li>
+        <li><code class="inline">use_web_search=True</code> 일 때만 <code class="inline">_WEB_HANDLING_CLAUSE</code>를 system prompt에 포함</li>
+      </ul>
+    </li>
+    <li>
+      <code class="inline">_build_system_messages</code> 시그니처에 <code class="inline">use_web_search: bool = False</code> 추가, <code class="inline">build_system_prompt</code>로 전달
+    </li>
+    <li>
+      <code class="inline">stream_turn</code>의 <code class="inline">_build_system_messages</code> 호출처에서 turn의 <code class="inline">use_web_search</code> boolean을 그대로 전달
+    </li>
+  </ul>
+
+  <h3>2) <code class="inline">tests/unit/domain/chat/test_build_system_prompt.py</code></h3>
+  <ul>
+    <li><code class="inline">_TAIL</code>을 두 가지로 분리: <code class="inline">_TAIL</code> (web clause 없음, default), <code class="inline">_TAIL_WITH_WEB</code> (web clause 포함)</li>
+    <li><code class="inline">_WEB_CLAUSE</code> 문구를 새 negative instruction 포함하도록 업데이트</li>
+    <li>
+      신규 테스트:
+      <ul>
+        <li><code class="inline">test_web_clause_excluded_when_use_web_search_false</code> — <code class="inline">&lt;web_context&gt;</code> / <code class="inline">&lt;result&gt;</code> / <code class="inline">web search results</code> 단어 자체가 prompt에 없음</li>
+        <li><code class="inline">test_web_clause_included_when_use_web_search_true</code> — clause + negative instruction 모두 포함</li>
+        <li><code class="inline">test_clause_order_includes_web_after_rag_when_enabled</code> — 순서 검증 (rag &lt; web)</li>
+        <li><code class="inline">test_use_web_search_default_is_false</code> — 기본값이 False 임을 직접 비교로 확인</li>
+        <li><code class="inline">test_web_clause_only_difference_between_on_and_off</code> — ON prompt == OFF prompt + 공백 + web clause</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h3>3) <code class="inline">tests/unit/domain/chat/test_chat_service_web_search.py</code></h3>
+  <ul>
+    <li>
+      기존 <code class="inline">test_build_system_prompt_includes_web_clause_always</code> →
+      <code class="inline">test_build_system_prompt_includes_web_clause_only_when_search_enabled</code> 로 의도 변경
+    </li>
+    <li>
+      <code class="inline">test_build_system_prompt_clause_order_with_web</code> — <code class="inline">use_web_search=True</code> 명시적으로 전달
+    </li>
+  </ul>
+
+  <!-- 섹션 3: Diff 요약 -->
+  <h2>3. Diff 요약 (<code class="inline">git diff --stat</code>)</h2>
+<pre>app/domain/chat/service.py                         | 41 ++++++++++++++---
+tests/unit/domain/chat/test_build_system_prompt.py | 52 +++++++++++++++++++---
+tests/unit/domain/chat/test_chat_service_web_search.py | 17 +++++--
+3 files changed, 92 insertions(+), 18 deletions(-)</pre>
+
+  <!-- 섹션 4: 테스트 결과 -->
+  <h2>4. 테스트 결과</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 60%">명령</th>
+        <th>결과</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code class="inline">uv run pytest tests/unit/domain/chat/test_build_system_prompt.py tests/unit/test_system_prompt_image_clause.py -v</code></td>
+        <td>22 passed</td>
+      </tr>
+      <tr>
+        <td><code class="inline">uv run pytest tests/unit -m "not integration and not e2e"</code></td>
+        <td>397 passed</td>
+      </tr>
+      <tr>
+        <td><code class="inline">uv run pytest tests/integration -m integration</code></td>
+        <td>8 passed, 109 skipped (env-gated)</td>
+      </tr>
+      <tr>
+        <td><code class="inline">uv run ruff check ...</code></td>
+        <td>All checks passed</td>
+      </tr>
+      <tr>
+        <td><code class="inline">uv run ruff format --check ...</code></td>
+        <td>3 files already formatted</td>
+      </tr>
+      <tr>
+        <td><code class="inline">uv run mypy app/domain/chat/service.py</code></td>
+        <td>Success: no issues found</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- 섹션 5: 수동 검증 -->
+  <h2>5. 수동 검증 (BE :8100 / 검증 DB <code class="inline">chatbot_verify</code>)</h2>
+  <ul>
+    <li>동일 시나리오 재현 시 응답에 <code class="inline">&lt;web_context&gt;</code> / <code class="inline">&lt;/web_context&gt;</code> / <code class="inline">&lt;result&gt;</code> / <code class="inline">&lt;/result&gt;</code> 태그 모두 등장하지 않음.</li>
+    <li>LLM이 자체적으로 "최신 기상 정보 확인" 권유까지 포함하여 응답.</li>
+  </ul>
+
+  <figure>
+    <img
+      src="https://raw.githubusercontent.com/heemanglee/chatbot/bugfix-assets/2026-05-14-fix-web-context-leak-no-search-verified.gif"
+      alt="웹검색 OFF turn 검증 GIF — 응답에 web_context/result 태그가 출력되지 않음"
+    />
+    <figcaption>검증 GIF: 웹검색 OFF turn에서 내부 태그가 응답으로 누출되지 않는 모습.</figcaption>
+  </figure>
+
+  <!-- 섹션 6: Trade-off -->
+  <h2>6. Trade-off / 참고</h2>
+  <ul>
+    <li>
+      OpenAI prompt-cache prefix가 <code class="inline">use_web_search</code> boolean에 따라 둘로 분리됨 (with-web / without-web).
+      동일 사용자가 한 모드를 계속 쓰는 경우가 대부분이므로 cache hit rate 손실은 미미. 안전성 확보를 우선.
+    </li>
+    <li>
+      <code class="inline">_RAG_HANDLING_CLAUSE</code>는 같은 패턴 적용 가능하지만 이번 버그 범위에서 제외 (RAG는 항상 활성). 필요 시 후속 PR로 분리.
+    </li>
+  </ul>
+
+  <!-- 섹션 7: 관련 링크 -->
+  <h2>7. 관련 링크</h2>
+  <ul>
+    <li>
+      Parent issue:
+      <a href="https://github.com/heemanglee/chatbot/issues/37" target="_blank" rel="noreferrer">
+        https://github.com/heemanglee/chatbot/issues/37
+      </a>
+    </li>
+    <li>
+      Backend issue:
+      <a href="https://github.com/heemanglee/langchain-chatbot/issues/73" target="_blank" rel="noreferrer">
+        https://github.com/heemanglee/langchain-chatbot/issues/73
+      </a>
+    </li>
+  </ul>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,797 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ADR 0001 · PR 생성 직후 worktree 제거</title>
+  <meta name="description" content="chatbot 레포 ADR — git worktree 브랜치 잠금 문제를 해결하기 위해 PR 생성 직후 worktree를 제거하는 정책" />
+  <script>
+    (function () {
+      var stored = localStorage.getItem("chatbot-adr-0001-theme") || "system";
+      var effective =
+        stored === "system"
+          ? window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+          : stored;
+      document.documentElement.dataset.theme = stored;
+      document.documentElement.dataset.themeEffective = effective;
+      document.documentElement.style.colorScheme = effective;
+    })();
+  </script>
+  <style>
+    :root {
+      --bg: oklch(98.5% 0.005 280);
+      --surface: oklch(100% 0 0);
+      --surface-2: oklch(96.5% 0.01 280);
+      --ink: oklch(20% 0.02 280);
+      --ink-soft: oklch(45% 0.02 280);
+      --ink-faint: oklch(62% 0.015 280);
+      --line: oklch(90% 0.01 280);
+      --line-strong: oklch(82% 0.015 280);
+
+      --accent: oklch(54% 0.18 290);
+      --accent-soft: oklch(94% 0.05 290);
+
+      --assigned: oklch(62% 0.15 165);
+      --assigned-soft: oklch(95% 0.05 165);
+      --pending: oklch(72% 0.16 70);
+      --pending-soft: oklch(96% 0.06 70);
+      --excluded: oklch(60% 0.02 280);
+      --excluded-soft: oklch(94% 0.005 280);
+      --danger: oklch(60% 0.18 25);
+      --danger-soft: oklch(95% 0.04 25);
+
+      --radius-sm: 6px; --radius: 10px; --radius-lg: 16px;
+      --shadow-sm: 0 1px 0 oklch(85% 0.01 280 / 0.6);
+      --shadow: 0 8px 24px -16px oklch(20% 0.02 280 / 0.35);
+
+      --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      --sans: ui-sans-serif, -apple-system, "Pretendard", "Apple SD Gothic Neo",
+        "Noto Sans KR", system-ui, sans-serif;
+    }
+    :root[data-theme-effective="dark"] {
+      --bg: oklch(16% 0.012 280);
+      --surface: oklch(20% 0.012 280);
+      --surface-2: oklch(24% 0.013 280);
+      --ink: oklch(96% 0.005 280);
+      --ink-soft: oklch(78% 0.01 280);
+      --ink-faint: oklch(62% 0.015 280);
+      --line: oklch(28% 0.015 280);
+      --line-strong: oklch(36% 0.02 280);
+
+      --accent: oklch(75% 0.16 290);
+      --accent-soft: oklch(30% 0.06 290);
+
+      --assigned-soft: oklch(28% 0.06 165);
+      --pending-soft: oklch(30% 0.07 70);
+      --excluded-soft: oklch(28% 0.005 280);
+      --danger-soft: oklch(28% 0.07 25);
+
+      --shadow-sm: 0 1px 0 oklch(12% 0.01 280 / 0.8);
+      --shadow: 0 12px 30px -16px oklch(0% 0 0 / 0.6);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { background: var(--bg); color: var(--ink); }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      font-size: 15.5px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+    .page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: clamp(2rem, 1.4rem + 2.4vw, 4.5rem) clamp(1.25rem, 0.8rem + 2vw, 3rem) 4rem;
+    }
+
+    /* Hero */
+    .hero { margin-bottom: clamp(2.5rem, 1.5rem + 2.5vw, 4.5rem); }
+    .hero__row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.75rem;
+    }
+    .hero__eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.4rem 0.8rem;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-radius: 999px;
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .hero__eyebrow::before {
+      content: "";
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 3px oklch(from var(--accent) l c h / 0.18);
+    }
+    .hero__title {
+      font-size: clamp(2.25rem, 1.5rem + 2.5vw, 3.75rem);
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      margin: 0 0 1rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .hero__lede {
+      font-size: clamp(1.05rem, 1rem + 0.2vw, 1.2rem);
+      color: var(--ink-soft);
+      max-width: 56ch;
+      margin: 0 0 1.75rem;
+    }
+    .hero__meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.35rem 0.7rem;
+      border-radius: 999px;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid var(--line-strong);
+      background: var(--surface);
+      color: var(--ink-soft);
+    }
+    .pill--assigned { background: var(--assigned-soft); color: var(--assigned); border-color: oklch(from var(--assigned) l c h / 0.3); }
+    .pill--pending  { background: var(--pending-soft);  color: var(--pending);  border-color: oklch(from var(--pending) l c h / 0.3); }
+    .pill--danger   { background: var(--danger-soft);   color: var(--danger);   border-color: oklch(from var(--danger) l c h / 0.3); }
+    .pill--excluded { background: var(--excluded-soft); color: var(--excluded); border-color: var(--line-strong); }
+    .pill__dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* Theme toggle */
+    .theme-toggle {
+      display: inline-flex;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 3px;
+      box-shadow: var(--shadow-sm);
+    }
+    .theme-toggle button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 0.85rem;
+      border: none;
+      background: transparent;
+      color: var(--ink-soft);
+      font-family: var(--sans);
+      font-size: 12.5px;
+      font-weight: 500;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 160ms ease, color 160ms ease;
+    }
+    .theme-toggle button:hover { color: var(--ink); }
+    .theme-toggle button[aria-pressed="true"] {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    .theme-toggle svg {
+      width: 15px; height: 15px;
+    }
+    .theme-toggle button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* Sections */
+    section {
+      margin-bottom: clamp(2.5rem, 1.5rem + 2vw, 4rem);
+      scroll-margin-top: 2rem;
+    }
+    section h2 {
+      display: flex;
+      align-items: baseline;
+      gap: 0.85rem;
+      font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem);
+      letter-spacing: -0.015em;
+      margin: 0 0 1.5rem;
+      padding-bottom: 0.85rem;
+      border-bottom: 1px solid var(--line);
+      font-weight: 650;
+    }
+    section h2 .index {
+      font-family: var(--mono);
+      font-size: 0.65em;
+      color: var(--ink-faint);
+      letter-spacing: 0;
+      font-weight: 500;
+    }
+    section h3 {
+      font-size: 1.1rem;
+      margin: 2rem 0 1rem;
+      letter-spacing: -0.01em;
+    }
+    p { margin: 0 0 1rem; color: var(--ink-soft); }
+    p strong, li strong { color: var(--ink); font-weight: 600; }
+    blockquote {
+      margin: 1.25rem 0;
+      padding: 1rem 1.25rem;
+      border-left: 3px solid var(--accent);
+      background: var(--accent-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      color: var(--ink);
+      font-style: normal;
+    }
+    blockquote p { margin: 0; color: var(--ink); font-weight: 500; }
+
+    code {
+      font-family: var(--mono);
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      padding: 0.1rem 0.4rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.88em;
+      color: var(--ink);
+    }
+    pre {
+      font-family: var(--mono);
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 1rem 1.2rem;
+      font-size: 13px;
+      line-height: 1.7;
+      overflow-x: auto;
+      color: var(--ink);
+      margin: 0 0 1rem;
+    }
+    pre code {
+      background: none; border: none; padding: 0; font-size: inherit;
+    }
+
+    /* Decision command block */
+    .command {
+      display: flex;
+      align-items: stretch;
+      background: var(--surface);
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin: 1.5rem 0;
+      box-shadow: var(--shadow);
+    }
+    .command__label {
+      flex: 0 0 auto;
+      padding: 1rem 1.1rem;
+      background: var(--accent);
+      color: oklch(99% 0 0);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+    }
+    .command__body {
+      flex: 1 1 auto;
+      padding: 1rem 1.2rem;
+      font-family: var(--mono);
+      font-size: 13.5px;
+      color: var(--ink);
+      background: var(--surface-2);
+      overflow-x: auto;
+    }
+
+    /* Branches (Before / After cards) */
+    .branches {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.25rem;
+      margin: 1.5rem 0;
+    }
+    @media (min-width: 860px) {
+      .branches { grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    }
+    .branch {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 1.4rem 1.4rem 1.2rem;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    .branch--before { border-top: 3px solid var(--danger); }
+    .branch--after  { border-top: 3px solid var(--assigned); }
+    .branch__title {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      font-size: 1.05rem;
+      font-weight: 650;
+      margin: 0 0 0.4rem;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+    }
+    .branch__title .tag {
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .branch--before .branch__title .tag {
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+    .branch--after .branch__title .tag {
+      background: var(--assigned-soft);
+      color: var(--assigned);
+    }
+    .branch__subtitle {
+      font-size: 13px;
+      color: var(--ink-faint);
+      margin: 0 0 1rem;
+      font-family: var(--mono);
+    }
+    .branch pre { margin: 0 0 1rem; font-size: 12.5px; line-height: 1.75; }
+    .branch ul {
+      margin: 0;
+      padding-left: 1.1rem;
+      color: var(--ink-soft);
+      font-size: 14px;
+    }
+    .branch ul li { margin-bottom: 0.35rem; }
+    .branch__heading {
+      font-size: 12px;
+      font-family: var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-faint);
+      margin: 0 0 0.6rem;
+      font-weight: 600;
+    }
+
+    /* Consequence grid */
+    .cases {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.25rem;
+      margin: 1.25rem 0 0;
+    }
+    @media (min-width: 760px) {
+      .cases { grid-template-columns: 1fr 1fr; }
+    }
+    .case {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.3rem;
+      position: relative;
+    }
+    .case--pos { border-left: 3px solid var(--assigned); }
+    .case--neg { border-left: 3px solid var(--pending); }
+    .case h3 {
+      margin: 0 0 0.75rem;
+      font-size: 0.92rem;
+      font-family: var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-faint);
+    }
+    .case--pos h3 { color: var(--assigned); }
+    .case--neg h3 { color: var(--pending); }
+    .case ul { margin: 0; padding-left: 1.1rem; color: var(--ink-soft); }
+    .case ul li { margin-bottom: 0.45rem; }
+    .case ul li:last-child { margin-bottom: 0; }
+
+    /* Tables */
+    .table-wrap {
+      margin: 1.25rem 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow-x: auto;
+      background: var(--surface);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    thead th {
+      text-align: left;
+      padding: 0.85rem 1rem;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      background: var(--surface-2);
+      font-weight: 600;
+      border-bottom: 1px solid var(--line);
+    }
+    tbody td {
+      padding: 0.95rem 1rem;
+      border-bottom: 1px solid var(--line);
+      color: var(--ink-soft);
+      vertical-align: top;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody td:first-child {
+      color: var(--ink);
+      font-weight: 500;
+      width: 32%;
+      white-space: nowrap;
+    }
+    @media (max-width: 640px) {
+      tbody td:first-child { white-space: normal; width: auto; }
+    }
+
+    /* References list */
+    .refs {
+      display: grid;
+      gap: 0.85rem;
+      margin: 1rem 0 0;
+    }
+    .refs__item {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 1rem;
+      padding: 0.85rem 1rem;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      align-items: baseline;
+    }
+    @media (max-width: 640px) {
+      .refs__item { grid-template-columns: 1fr; gap: 0.3rem; }
+    }
+    .refs__label {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      font-weight: 600;
+    }
+    .refs__value {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--ink);
+      word-break: break-word;
+    }
+    .refs__value em {
+      font-style: normal;
+      color: var(--ink-soft);
+      font-family: var(--sans);
+      font-size: 13.5px;
+      margin-left: 0.3rem;
+    }
+
+    /* Footer */
+    footer {
+      margin-top: 5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--ink-faint);
+      letter-spacing: 0.02em;
+    }
+
+    @media (max-width: 540px) {
+      .theme-toggle button span { display: none; }
+      .theme-toggle button { padding: 0.5rem 0.55rem; }
+      .hero__row { align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <header class="hero">
+      <div class="hero__row">
+        <span class="hero__eyebrow">ADR · 0001</span>
+        <div class="theme-toggle" role="radiogroup" aria-label="테마 모드 선택">
+          <button type="button" data-theme-value="light" aria-pressed="false" aria-label="라이트 모드">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="4"/>
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+            </svg>
+            <span>Light</span>
+          </button>
+          <button type="button" data-theme-value="system" aria-pressed="false" aria-label="시스템 설정 따르기">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2" y="3" width="20" height="14" rx="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+            <span>Auto</span>
+          </button>
+          <button type="button" data-theme-value="dark" aria-pressed="false" aria-label="다크 모드">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+            <span>Dark</span>
+          </button>
+        </div>
+      </div>
+
+      <h1 class="hero__title">PR 생성 직후<br/>worktree 제거</h1>
+      <p class="hero__lede">
+        git은 한 브랜치를 하나의 worktree에만 체크아웃할 수 있다.
+        리뷰 단계에서 main checkout이 feature branch에 진입하지 못하는 문제를 해소하기 위해, PR 생성 직후 worktree를 즉시 제거한다.
+      </p>
+
+      <div class="hero__meta">
+        <span class="pill pill--assigned"><span class="pill__dot"></span>Status · Accepted</span>
+        <span class="pill"><span class="pill__dot"></span>2026-05-16</span>
+        <span class="pill">tag · worktree</span>
+        <span class="pill">tag · submodule</span>
+        <span class="pill">tag · superpowers-workflow</span>
+      </div>
+    </header>
+
+    <section id="context">
+      <h2><span class="index">01</span>Context</h2>
+      <p>
+        chatbot 레포는 backend / frontend submodule 작업 시
+        <code>.worktrees/&lt;branch&gt;</code> 형태의 git worktree를 만들어 격리된 환경에서 작업한다.
+        표준 흐름은 worktree에서 commit → push → <code>gh pr create</code>이다.
+      </p>
+      <p>git의 근본 제약은 다음과 같다:</p>
+      <blockquote>
+        <p>한 브랜치는 동시에 하나의 worktree에서만 checkout될 수 있다.</p>
+      </blockquote>
+      <p>
+        따라서 worktree가 <code>feat/foo</code>를 점유하는 동안 main checkout에서
+        <code>git switch feat/foo</code>를 시도하면 다음 오류로 차단된다:
+      </p>
+      <pre><code>fatal: 'feat/foo' is already checked out at '/.../.worktrees/feat/foo'</code></pre>
+      <p>
+        리뷰 피드백 대응이나 추가 디버깅을 main checkout(IDE·dev 서버가 묶여 있는 1차 작업공간)에서 진행하고 싶을 때
+        이 잠금이 작업을 직접적으로 막는다.
+      </p>
+    </section>
+
+    <section id="decision">
+      <h2><span class="index">02</span>Decision</h2>
+      <p>
+        <code>gh pr create</code>가 성공한 <strong>직후</strong> 다음을 실행한다:
+      </p>
+      <div class="command" role="figure" aria-label="결정 명령어">
+        <span class="command__label">Run</span>
+        <span class="command__body">git worktree remove .worktrees/&lt;branch&gt;</span>
+      </div>
+      <p>
+        이후 동일 브랜치에 대한 모든 추가 작업(리뷰 피드백, fix-up, follow-up commit)은
+        <strong>main checkout에서 <code>git switch &lt;branch&gt;</code> 후 직접</strong> 진행한다.
+        worktree를 다시 만들지 않는다.
+      </p>
+      <p>
+        이 룰은 backend / frontend submodule 양쪽에 동일하게 적용된다.
+      </p>
+    </section>
+
+    <section id="scenarios">
+      <h2><span class="index">03</span>Before / After scenarios</h2>
+      <p>변경 전과 후의 동작을 단계별 시나리오로 비교한다.</p>
+
+      <div class="branches">
+        <article class="branch branch--before">
+          <h3 class="branch__title">
+            <span class="tag">Before</span>
+            worktree 유지 정책
+          </h3>
+          <p class="branch__subtitle">PR 생성 후에도 worktree가 feat/foo를 점유</p>
+<pre>1. cd backend
+2. git worktree add .worktrees/feat/foo \
+     -b feat/foo origin/main
+3. (worktree) 작업 + commit + push
+4. (worktree) gh pr create
+5. PR 리뷰어가 수정 요청 댓글 작성
+6. cd /path/to/backend          # main checkout
+7. git switch feat/foo
+   → fatal: 'feat/foo' is already
+     checked out at .worktrees/...   ✗
+8. (어쩔 수 없이) cd .worktrees/feat/foo
+   → 수정 → commit → push
+9. main checkout은 PR이 merge될 때까지
+   feature branch에 진입 불가</pre>
+          <p class="branch__heading">문제 지점</p>
+          <ul>
+            <li>main checkout이 1차 작업공간임에도 feature branch 진입 불가</li>
+            <li>worktree 경로를 기억해 매번 <code>cd</code> 해야 함</li>
+            <li><code>.worktrees/</code> 디렉토리가 점점 무거워짐</li>
+          </ul>
+        </article>
+
+        <article class="branch branch--after">
+          <h3 class="branch__title">
+            <span class="tag">After</span>
+            PR 생성 직후 제거
+          </h3>
+          <p class="branch__subtitle">PR이 만들어진 순간 잠금 해제</p>
+<pre>1. cd backend
+2. git worktree add .worktrees/feat/foo \
+     -b feat/foo origin/main
+3. (worktree) 작업 + commit + push
+4. (worktree) gh pr create
+5. cd /path/to/backend          # main checkout
+6. git worktree remove \
+     .worktrees/feat/foo             ✓ NEW
+7. PR 리뷰어가 수정 요청 댓글 작성
+8. git switch feat/foo               ✓ 정상 진입
+9. 수정 → commit → push
+   (main checkout에서 직접)
+10. PR merge 후
+    git switch main &amp;&amp; git branch -d feat/foo</pre>
+          <p class="branch__heading">개선 지점</p>
+          <ul>
+            <li>main checkout에서 feature branch에 자유롭게 진입</li>
+            <li><code>.worktrees/</code> 누적 없음 (PR마다 생성·제거 1회)</li>
+            <li>리뷰 피드백 사이클이 main checkout 안에서 닫힘</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section id="consequences">
+      <h2><span class="index">04</span>Consequences</h2>
+      <p>이 결정의 트레이드오프.</p>
+      <div class="cases">
+        <article class="case case--pos">
+          <h3>Positive</h3>
+          <ul>
+            <li>main checkout에서 모든 git 동작 가능 — 브랜치 잠금 충돌 제거</li>
+            <li>멀티 worktree 누적으로 인한 디스크·인덱스 비용 감소</li>
+            <li>리뷰 피드백 → 추가 commit 흐름 단순화 (<code>cd</code> 불필요)</li>
+            <li>IDE·dev 서버가 항상 main checkout을 가리키는 일관성 유지</li>
+          </ul>
+        </article>
+        <article class="case case--neg">
+          <h3>Negative</h3>
+          <ul>
+            <li>worktree의 "다른 브랜치 작업 중에도 격리 유지" 효과가 <strong>PR 생성 시점까지로 한정</strong>된다.</li>
+            <li>리뷰 단계 이후 main checkout이 feature branch에 묶이므로, 동시에 다른 작업을 하려면 stash 또는 별도 worktree 재생성이 필요하다.</li>
+            <li>룰을 잊고 worktree를 남기면 잠금 문제가 재발 — <code>CLAUDE.md</code> / <code>.claude/rules/</code>로 보강 필요.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section id="alternatives">
+      <h2><span class="index">05</span>Alternatives considered</h2>
+      <p>다음 대안들을 검토했으나 모두 본 문제를 해결하지 못해 기각했다.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">대안</th>
+              <th scope="col">기각 사유</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>worktree 유지, 리뷰 피드백도 worktree에서 처리</td>
+              <td>원 문제(main checkout 잠금)가 그대로 남음. 사용자가 명시적으로 거부.</td>
+            </tr>
+            <tr>
+              <td>worktree 미사용 — main checkout에서 feature branch 직접 작업</td>
+              <td>작업 중 main으로 잠깐 돌아가야 할 때 stash 필요 → 격리 이점 상실. 병렬 implementer subagent 흐름과도 충돌.</td>
+            </tr>
+            <tr>
+              <td>worktree 제거 시점을 PR merge 이후로 늦춤</td>
+              <td>리뷰 사이클(보통 수 시간~수일) 동안 잠금 문제 지속 → 본 문제 미해결.</td>
+            </tr>
+            <tr>
+              <td>같은 ref를 두 worktree에 동시 노출</td>
+              <td>git이 해당 기능을 제공하지 않음.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="references">
+      <h2><span class="index">06</span>References</h2>
+      <div class="refs">
+        <div class="refs__item">
+          <span class="refs__label">Rule · parent</span>
+          <span class="refs__value">CLAUDE.md <em>— Worktree rules 섹션</em></span>
+        </div>
+        <div class="refs__item">
+          <span class="refs__label">Rule · skill</span>
+          <span class="refs__value">.claude/rules/superpowers/workflow.md <em>— Removing the worktree immediately after PR creation</em></span>
+        </div>
+        <div class="refs__item">
+          <span class="refs__label">Skill</span>
+          <span class="refs__value">.claude/skills/adr-on-workflow-change/SKILL.md <em>— ADR 작성 자동화 지침</em></span>
+        </div>
+        <div class="refs__item">
+          <span class="refs__label">Commit</span>
+          <span class="refs__value">83d41af <em>— docs(claude): require worktree removal right after PR creation</em></span>
+        </div>
+        <div class="refs__item">
+          <span class="refs__label">Memory</span>
+          <span class="refs__value">feedback_worktree_remove_after_pr.md</span>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <span>ADR 0001 · chatbot</span>
+      <span>docs/adr/0001-remove-worktree-after-pr.md</span>
+    </footer>
+  </div>
+
+  <script>
+    (function () {
+      var THEME_KEY = "chatbot-adr-0001-theme";
+      var root = document.documentElement;
+      var darkMql = window.matchMedia("(prefers-color-scheme: dark)");
+
+      function getStored() {
+        try { return localStorage.getItem(THEME_KEY) || "system"; } catch (e) { return "system"; }
+      }
+      function setStored(v) { try { localStorage.setItem(THEME_KEY, v); } catch (e) {} }
+      function effectiveFor(s) {
+        return s === "system" ? (darkMql.matches ? "dark" : "light") : s;
+      }
+      function sync(stored) {
+        document.querySelectorAll(".theme-toggle button").forEach(function (btn) {
+          btn.setAttribute("aria-pressed",
+            btn.getAttribute("data-theme-value") === stored ? "true" : "false");
+        });
+      }
+      function apply(stored) {
+        var eff = effectiveFor(stored);
+        root.setAttribute("data-theme", stored);
+        root.setAttribute("data-theme-effective", eff);
+        root.style.colorScheme = eff;
+        sync(stored);
+      }
+      function init() {
+        document.querySelectorAll(".theme-toggle button").forEach(function (btn) {
+          btn.addEventListener("click", function (e) {
+            var v = e.currentTarget.getAttribute("data-theme-value");
+            setStored(v); apply(v);
+          });
+        });
+        apply(getStored());
+      }
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
+      } else { init(); }
+
+      var osListener = function () { if (getStored() === "system") apply("system"); };
+      if (darkMql.addEventListener) darkMql.addEventListener("change", osListener);
+      else if (darkMql.addListener) darkMql.addListener(osListener);
+
+      window.addEventListener("storage", function (event) {
+        if (event.key === THEME_KEY) apply(getStored());
+      });
+    })();
+  </script>
+</body>
+</html>
