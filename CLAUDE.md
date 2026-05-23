@@ -213,6 +213,29 @@ When the user runs the Superpowers flow on this repo (brainstorm → spec → pl
 
 Each submodule manages its own implementation conventions through `.claude/`. Backend keeps an explicit rules file at `backend/.claude/rules/superpowers/workflow.md` (TDD cadence, review policy, commit policy). Frontend does **not** have an equivalent `.claude/rules/` directory — its automation lives in `frontend/.claude/agents/` (`gsd-*` series), `frontend/.claude/get-shit-done/`, `frontend/.claude/hooks/`, and `frontend/.claude/skills/`. See `frontend/CLAUDE.md` for FE-specific workflow conventions. During implementation, **the sub-repo's own rules win**. The parent's workflow skill covers only the cross-stack entry point, artifact locations, and pointer bumps.
 
+### Reference-first UI mockups
+
+When using the Superpowers visual companion or writing an HTML mockup for an existing frontend surface, create a **reference-first mockup** by default.
+
+Before writing any mockup HTML, collect a real UI reference from at least one of these sources:
+
+- A user-provided screenshot
+- The running app in Browser or Chrome
+- The actual frontend route and component source
+
+The mockup must preserve the existing app shell, page structure, navigation, typography, spacing, color treatment, and surrounding UI. Only the proposed changed area should differ. Do not invent a new dashboard, card layout, navigation model, or visual theme unless the requested feature is explicitly a new surface.
+
+For flow-heavy UI work, prefer an interactive single-file SPA mockup with mock data and hash-based navigation, such as `#/chat`, `#/chat/session-1`, or `#/projects/project-1`. These mockups must not call the backend. Simulate navigation, menus, dialogs, state changes, and empty/loading/error states locally in JavaScript.
+
+Before showing the mockup, self-check:
+
+- Does the page chrome match the real app?
+- Is the changed area the only meaningful visual difference?
+- Would the user recognize this as the current product screen?
+- Are navigation and state transitions simulated without backend communication?
+
+If the target page cannot be verified, ask for a screenshot or start the frontend before creating the mockup.
+
 ### Frontend and backend run in parallel
 
 Frontend and backend work in non-overlapping areas, so **dispatch both as parallel implementer subagents**. Never finish one side before starting the other. Synchronization is required only at two points:
