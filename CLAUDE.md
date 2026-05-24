@@ -257,6 +257,8 @@ When the user explicitly requests PR creation for a Superpowers worktree, run Co
 
 `mode:headless` is the automation-safe version of the Full **recommended** Compound path: it avoids blocking prompts, writes or updates a repo-local `docs/solutions/...` document, and validates the result. Include that learning document in the same sub-repo commit and add a `## 학습 문서` section to the PR body listing the `docs/solutions/...` path. If Compound reports `Documentation skipped`, fails validation, or writes no solution doc, stop PR creation and ask for a narrower context hint or explicit permission to proceed without the learning doc.
 
+When Compound Engineering is run interactively in this repo, treat the complete documentation workflow with agent session-history search as the repo default. If the workflow surfaces prompts for documentation depth or session-history consent, continue with the complete path and include session-history context unless the user explicitly asks for a lighter or no-history run.
+
 **Remove the worktree immediately after PR creation.** Run `git worktree remove <path>` inside the submodule right after `gh pr create` succeeds. Git only allows a branch to be checked out in one worktree at a time — if the worktree keeps holding `feat/foo`, `git switch feat/foo` from the main checkout fails with `fatal: '<branch>' is already checked out at ...`. Once the PR exists, the worktree's job is done; remove it so follow-up review-feedback commits can happen in the main checkout via `git switch <branch>`. Do NOT recreate the worktree for review-feedback work.
 
 ## Editing the parent repo
