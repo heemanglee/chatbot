@@ -213,6 +213,29 @@ When the user runs the Superpowers flow on this repo (brainstorm → spec → pl
 
 Each submodule manages its own implementation conventions through `.claude/`. Backend keeps an explicit rules file at `backend/.claude/rules/superpowers/workflow.md` (TDD cadence, review policy, commit policy). Frontend does **not** have an equivalent `.claude/rules/` directory — its automation lives in `frontend/.claude/agents/` (`gsd-*` series), `frontend/.claude/get-shit-done/`, `frontend/.claude/hooks/`, and `frontend/.claude/skills/`. See `frontend/CLAUDE.md` for FE-specific workflow conventions. During implementation, **the sub-repo's own rules win**. The parent's workflow skill covers only the cross-stack entry point, artifact locations, and pointer bumps.
 
+### GitHub issue creation reliability
+
+When the workflow requires GitHub issue creation, prefer the authenticated `gh` CLI over the GitHub connector. The connector can have a narrower installation scope than the CLI token, so a connector "repo not installed / unavailable" result is **not** proof that issue creation is impossible.
+
+Before creating an issue, verify the CLI path explicitly:
+
+```bash
+gh auth status
+gh api user --jq .login
+git remote get-url origin
+gh repo view <owner>/<repo> --json nameWithOwner
+```
+
+Then create the issue with an explicit repo and assign it to the authenticated user:
+
+```bash
+assignee="$(gh api user --jq .login)"
+gh issue create --repo heemanglee/langchain-chatbot --assignee "$assignee" ...
+gh issue create --repo heemanglee/langchain-chatbot-fe --assignee "$assignee" ...
+```
+
+For cross-stack work, create one issue in each affected submodule repository (`backend/` → `heemanglee/langchain-chatbot`, `frontend/` → `heemanglee/langchain-chatbot-fe`). Do not stop at the issue phase merely because the GitHub connector cannot see one of those repositories; first try the explicit `gh issue create --repo ...` command from the affected submodule. Only report a blocker after `gh auth status`, `gh repo view`, and `gh issue create --repo ...` all fail with the current CLI credentials.
+
 ### Reference-first UI mockups
 
 When using the Superpowers visual companion or writing an HTML mockup for an existing frontend surface, create a **reference-first mockup** by default.
